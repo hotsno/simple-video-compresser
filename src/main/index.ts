@@ -1,17 +1,24 @@
-import { app, shell, BrowserWindow, ipcMain } from "electron";
-import { join } from "path";
+import { app, shell, BrowserWindow, ipcMain, screen } from "electron";
+import path, { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegPath from "ffmpeg-static";
+import ffprobePath from "ffprobe-static";
 
 function createWindow(): void {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: Math.floor(width * 0.5),
+    height: Math.floor(height * 0.65),
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: "hiddenInset",
     ...(process.platform === "linux" ? { icon } : {}),
+    ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -73,10 +80,27 @@ app.on("window-all-closed", () => {
   }
 });
 
+function getFfmpegPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "ffmpeg");
+  }
+  return ffmpegPath;
+}
+
+function getFfprobePath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "ffprobe");
+  }
+  return ffprobePath;
+}
+
 async function compressVideo(_event, options): Promise<{ success: boolean }> {
   const { inputPath, outputPath, resolution, format, fps } = options;
 
   return new Promise((resolve, reject) => {
+    ffmpeg.setFfmpegPath(getFfmpegPath());
+    ffmpeg.setFfprobePath(getFfprobePath());
+
     const command = ffmpeg(inputPath);
 
     if (resolution) {

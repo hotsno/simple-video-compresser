@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.simple-video-encoder.app
 productName: Simple Video Encoder
 directories:
   buildResources: build
@@ -13,6 +13,11 @@ asarUnpack:
   - resources/**
 win:
   executableName: Simple Video Encoder
+  extraResources:
+    - from: node_modules/ffmpeg-static/ffmpeg.exe
+      to: ffmpeg.exe
+    - from: node_modules/ffprobe-static/bin/win32/x64/ffprobe.exe
+      to: ffprobe.exe
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -26,6 +31,11 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  extraResources:
+    - from: node_modules/ffmpeg-static/ffmpeg
+      to: ffmpeg
+    - from: node_modules/ffprobe-static/bin/darwin/arm64/ffprobe
+      to: ffprobe
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:

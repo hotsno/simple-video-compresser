@@ -114,6 +114,14 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+.titlebar {
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  app-region: drag;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
