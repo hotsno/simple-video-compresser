@@ -5,6 +5,8 @@ import icon from "../../resources/icon.png?asset";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobePath from "ffprobe-static";
+import fs from "fs";
+import Store from "electron-store";
 
 function createWindow(): void {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -20,9 +22,9 @@ function createWindow(): void {
     ...(process.platform === "linux" ? { icon } : {}),
     ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
     titleBarOverlay: {
-      color: '#0a0a0a',
-      symbolColor: '#eee',
-    },  
+      color: "#0a0a0a",
+      symbolColor: "#eee",
+    },
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -66,6 +68,12 @@ app.whenReady().then(() => {
     compressVideo(event, options),
   );
 
+  // Get recent files IPC
+  ipcMain.handle("get-recent-files", getRecentFiles);
+
+  // Get recent files IPC
+  ipcMain.handle("clear-recent-files", clearRecentFiles);
+
   createWindow();
 
   app.on("activate", function () {
@@ -98,6 +106,10 @@ function getFfprobePath() {
   return ffprobePath;
 }
 
+interface StoreSchema {
+  recentDirs: string[];
+}
+
 async function compressVideo(_event, options): Promise<{ success: boolean }> {
   const { inputPath, outputPath, resolution, format, fps } = options;
 
@@ -105,6 +117,7 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
     ffmpeg.setFfmpegPath(getFfmpegPath());
     ffmpeg.setFfprobePath(getFfprobePath());
 
+    console.log(inputPath);
     const command = ffmpeg(inputPath);
 
     if (resolution) {
@@ -112,13 +125,21 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
       command.size(`${width}x${height}`);
     }
 
-    if (fps) {
-      command.fps(fps);
+    if (fps && fps != "Keep same") {
+      command.fps(parseInt(fps));
     }
 
     if (format) {
-      command.toFormat(format);
+      command.videoCodec(format);
     }
+
+    const store = new Store<StoreSchema>();
+    let recentDirs = store.get("recentDirs", []);
+    if (!recentDirs.includes(path.dirname(inputPath))) {
+      recentDirs.push(path.dirname(inputPath));
+    }
+    store.set("recentDirs", recentDirs);
+    console.log(store.get("recentDirs"));
 
     // Add more compression options as needed
     command
@@ -126,6 +147,44 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
       .on("error", (err) => reject(err))
       .save(outputPath);
   });
+}
+
+function getRecentFiles(_event) {
+  const store = new Store<StoreSchema>();
+  const recentDirs = store.get("recentDirs", []);
+  const allRecentFiles: { folder: string; path: string; mtime: number }[] = [];
+
+  for (const dir of recentDirs) {
+    try {
+      const files = fs
+        .readdirSync(dir)
+        .filter((file) => /\.(mp4|mov|avi|mkv)$/i.test(file))
+        .map((file) => {
+          const filePath = path.join(dir, file);
+          return {
+            path: filePath,
+            folder: path.basename(dir),
+            mtime: fs.statSync(filePath).mtime.getTime(),
+            filename: file,
+          };
+        })
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 3);
+
+      allRecentFiles.push(...files);
+    } catch (error) {
+      console.error(`Error reading directory ${dir}:`, error);
+    }
+  }
+
+  return allRecentFiles
+    .sort((a, b) => b.mtime - a.mtime)
+    .map((file, index) => ({ ...file, id: index + 1 }));
+}
+
+function clearRecentFiles(_event) {
+  const store = new Store<StoreSchema>();
+  store.set("recentDirs", []);
 }
 
 // In this file you can include the rest of your app's specific main process

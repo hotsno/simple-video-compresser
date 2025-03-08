@@ -1,5 +1,5 @@
-appId: com.simple-video-encoder.app
-productName: Simple Video Encoder
+appId: com.simple-video-compressor.app
+productName: Simple Video Compressor
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: Simple Video Encoder
+  executableName: Simple Video Compressor
   extraResources:
     - from: node_modules/ffmpeg-static/ffmpeg.exe
       to: ffmpeg.exe

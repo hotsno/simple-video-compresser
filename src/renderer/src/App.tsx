@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import VideoCarousel from "./components/video-carousel";
 
 const App = (): JSX.Element => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [resolution, setResolution] = useState("1920x1080");
   const [targetSize, setTargetSize] = useState("500");
-  const [format, setFormat] = useState("mp4");
-  const [fps, setFps] = useState("30");
+  const [format, setFormat] = useState("libx264");
+  const [fps, setFps] = useState("Keep same");
   const [isCompressing, setIsCompressing] = useState(false);
 
   // Bug workaround: https://github.com/react-dropzone/file-selector/issues/10#issuecomment-714312214
@@ -32,7 +33,7 @@ const App = (): JSX.Element => {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
     if (file != null) {
-      setSelectedFile(file);
+      setSelectedFile(window.api.getPathForFile(file));
     }
   };
 
@@ -46,7 +47,7 @@ const App = (): JSX.Element => {
         const filePath = window.api.getPathForFile(acceptedFiles[0]);
         // Bug workaround: https://github.com/react-dropzone/file-selector/issues/10#issuecomment-714312214
         if (filePath.length > 0) {
-          setSelectedFile(acceptedFiles[0]);
+          setSelectedFile(window.api.getPathForFile(acceptedFiles[0]));
         }
       }
     },
@@ -62,10 +63,9 @@ const App = (): JSX.Element => {
 
     setIsCompressing(true);
     try {
-      const inputPath = window.api.getPathForFile(selectedFile);
       const result = await window.api.compressVideo({
-        inputPath: inputPath,
-        outputPath: inputPath.replace(/\.[^/.]+$/, `_compressed.${format}`),
+        inputPath: selectedFile,
+        outputPath: selectedFile.replace(/\.[^/.]+$/, `_compressed.mp4`),
         resolution,
         targetSize: parseInt(targetSize),
         format,
@@ -87,95 +87,141 @@ const App = (): JSX.Element => {
     }
   };
 
+  // Add this state at the top of your component with other useState declarations
+  const [recentFiles, setRecentFiles] = useState<
+    {
+      path: string;
+      folder: string;
+      mtime: number;
+      id: number;
+      filename: string;
+    }[]
+  >([]);
+
+  // Add this useEffect after the useState declarations
+  useEffect(() => {
+    const fetchRecentFiles = async () => {
+      const files = await window.api.getRecentFiles();
+      setRecentFiles(files);
+    };
+
+    fetchRecentFiles();
+  }, []);
+
+  // Modify the JSX section
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Video Compressor</CardTitle>
-          <CardDescription>
-            Compress your videos with custom settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div
-            {...getRootProps()}
-            onDrop={onDrop}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-4 h-[200px] 
-            flex items-center justify-center cursor-pointer hover:border-primary"
-          >
-            <input {...getInputProps()} />
-            <p className="text-center">
-              {selectedFile
-                ? `Selected: ${selectedFile.name}`
-                : "Drag and drop a video file here, or click to select"}
-            </p>
+    <div className="cursor-default">
+      {recentFiles.length > 0 && (
+        <>
+          <div className="max-w-[80%] container mx-auto pt-10 md:max-w-2xl">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Files From Recent Folders
+            </h1>
           </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="resolution">Resolution</Label>
-              <Select value={resolution} onValueChange={setResolution}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select resolution" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3840x2160">4K (3840x2160)</SelectItem>
-                  <SelectItem value="2560x1440">2K (2560x1440)</SelectItem>
-                  <SelectItem value="1920x1080">1080p (1920x1080)</SelectItem>
-                  <SelectItem value="1280x720">720p (1280x720)</SelectItem>
-                  <SelectItem value="854x480">480p (854x480)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="targetSize">Target Size (MB)</Label>
-              <Input
-                id="targetSize"
-                type="number"
-                value={targetSize}
-                onChange={(e) => setTargetSize(e.target.value)}
-                min="1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="format">Output Format</Label>
-              <Select value={format} onValueChange={setFormat}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mp4">MP4</SelectItem>
-                  <SelectItem value="mov">MOV</SelectItem>
-                  <SelectItem value="avi">AVI</SelectItem>
-                  <SelectItem value="mkv">MKV</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fps">FPS</Label>
-              <Input
-                id="fps"
-                type="number"
-                value={fps}
-                onChange={(e) => setFps(e.target.value)}
-                min="1"
-                max="60"
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handleCompression}
-              disabled={isCompressing}
+          <div className="max-w-[80%] md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pt-5">
+            <VideoCarousel
+              files={recentFiles}
+              onSelect={(path) => {
+                setSelectedFile(path);
+              }}
+            />
+          </div>
+        </>
+      )}
+      <div className="max-w-[80%] container mx-auto py-5 md:max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Video Compressor</CardTitle>
+            <CardDescription>
+              Encode/compress your videos with custom settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div
+              {...getRootProps()}
+              onDrop={onDrop}
+              className="border-1 border-gray-800 rounded-lg p-4 h-[200px] 
+            flex items-center justify-center cursor-pointer hover:border-gray-500 transition-colors duration-300 ease-in-out"
             >
-              {isCompressing ? "Compressing..." : "Compress Video"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <input {...getInputProps()} />
+              <p className="text-center">
+                {selectedFile
+                  ? `Selected: ${selectedFile}`
+                  : "Drag and drop a video file here, or click to select"}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="resolution">Resolution</Label>
+                <Select value={resolution} onValueChange={setResolution}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select resolution" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3840x2160">4K (3840x2160)</SelectItem>
+                    <SelectItem value="2560x1440">2K (2560x1440)</SelectItem>
+                    <SelectItem value="1920x1080">1080p (1920x1080)</SelectItem>
+                    <SelectItem value="1280x720">720p (1280x720)</SelectItem>
+                    <SelectItem value="854x480">480p (854x480)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="targetSize">Target Size (MB)</Label>
+                <Input
+                  id="targetSize"
+                  type="number"
+                  value={targetSize}
+                  onChange={(e) => setTargetSize(e.target.value)}
+                  min="1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="format">Output Format</Label>
+                <Select value={format} onValueChange={setFormat}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="libx264">
+                      avc/mp4 (recommended)
+                    </SelectItem>
+                    <SelectItem value="libx265">hevc/mp4</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fps">FPS</Label>
+                <Select value={fps} onValueChange={(e) => setFps(e)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Keep same" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Keep same">Keep same</SelectItem>
+                    <SelectItem value="20">20 FPS</SelectItem>
+                    <SelectItem value="24">24 FPS</SelectItem>
+                    <SelectItem value="30">30 FPS</SelectItem>
+                    <SelectItem value="60">60 FPS</SelectItem>
+                    <SelectItem value="120">120 FPS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                className="w-full cursor-pointer"
+                onClick={handleCompression}
+                disabled={isCompressing}
+              >
+                {isCompressing ? "Compressing..." : "Compress Video"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

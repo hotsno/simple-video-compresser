@@ -13,6 +13,14 @@ declare global {
         fps: number;
       }): Promise<{ success: boolean }>;
       getPathForFile(file: File): string;
+      getRecentFiles(): {
+        path: string;
+        folder: string;
+        mtime: number;
+        id: number;
+        filename: string;
+      }[];
+      clearRecentFiles(): void;
     };
   }
 }

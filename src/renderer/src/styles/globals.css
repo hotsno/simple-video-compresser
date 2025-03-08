@@ -122,6 +122,33 @@
   app-region: drag;
 }
 
+@layer scroll {
+  body.platform-windows {
+    * {
+      /* This prevent scrollbar from shifting the page content */
+      scrollbar-gutter: stable;
+
+      &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 8px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-button {
+        display: none;
+      }
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

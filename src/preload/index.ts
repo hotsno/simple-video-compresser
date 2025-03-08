@@ -6,6 +6,8 @@ const api = {
   compressVideo: (options): Promise<{ success: boolean }> =>
     ipcRenderer.invoke("compress-video", options),
   getPathForFile: (file): string => webUtils.getPathForFile(file),
+  getRecentFiles: () => ipcRenderer.invoke("get-recent-files"),
+  clearRecentFiles: () => ipcRenderer.invoke("clear-recent-files"),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

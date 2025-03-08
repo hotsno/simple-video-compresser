@@ -1,6 +1,6 @@
-# Simple Video Encoder
+# Simple Video Compressor
 
-A simple video encoder. Pls recommend a real name.
+A simple video compressor. Pls recommend a real name.
 
 ## Development
 
