@@ -117,7 +117,6 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
     ffmpeg.setFfmpegPath(getFfmpegPath());
     ffmpeg.setFfprobePath(getFfprobePath());
 
-    console.log(inputPath);
     const command = ffmpeg(inputPath);
 
     if (resolution) {
@@ -139,7 +138,6 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
       recentDirs.push(path.dirname(inputPath));
     }
     store.set("recentDirs", recentDirs);
-    console.log(store.get("recentDirs"));
 
     // Add more compression options as needed
     command
