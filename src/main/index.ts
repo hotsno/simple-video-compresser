@@ -18,7 +18,7 @@ function createWindow(): void {
     height: Math.floor(height * 0.65),
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
+    ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset" } : {}),
     ...(process.platform === "linux" ? { icon } : {}),
     ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
     titleBarOverlay: {
