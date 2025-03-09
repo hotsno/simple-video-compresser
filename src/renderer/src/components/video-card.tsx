@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Folder } from "lucide-react";
-import placeholderUrl from "@/placeholder.svg";
 
 type VideoCardProps = {
   video: {
