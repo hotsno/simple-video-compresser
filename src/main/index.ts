@@ -72,7 +72,7 @@ app.whenReady().then(() => {
   ipcMain.handle("get-recent-files", getRecentFiles);
 
   // Get recent files IPC
-  ipcMain.handle("clear-recent-files", clearRecentFiles);
+  ipcMain.handle("clear-recent-folders", clearRecentFolders);
 
   createWindow();
 
@@ -157,6 +157,7 @@ function getRecentFiles(_event) {
       const files = fs
         .readdirSync(dir)
         .filter((file) => /\.(mp4|mov|avi|mkv)$/i.test(file))
+        .filter((file) => !file.includes("compressed"))
         .map((file) => {
           const filePath = path.join(dir, file);
           return {
@@ -180,7 +181,7 @@ function getRecentFiles(_event) {
     .map((file, index) => ({ ...file, id: index + 1 }));
 }
 
-function clearRecentFiles(_event) {
+function clearRecentFolders(_event) {
   const store = new Store<StoreSchema>();
   store.set("recentDirs", []);
 }

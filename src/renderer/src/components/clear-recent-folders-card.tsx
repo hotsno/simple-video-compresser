@@ -2,13 +2,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type AddDirectoryCardProps = {
-  onClick: () => void;
+type ClearRecentFoldersCardProps = {
+  onClearRecentFolders: () => void;
 };
 
 export default function ClearRecentFoldersCard({
-  onClick,
-}: AddDirectoryCardProps) {
+  onClearRecentFolders,
+}: ClearRecentFoldersCardProps) {
   return (
     <Card className="h-full flex items-center justify-center border-dashed">
       <CardContent className="flex flex-col items-center justify-center p-6 h-full">
@@ -16,7 +16,7 @@ export default function ClearRecentFoldersCard({
           variant="outline"
           size="icon"
           className="h-12 w-12 rounded-full mb-2 cursor-pointer"
-          onClick={onClick}
+          onClick={onClearRecentFolders}
           aria-label="Add directory"
         >
           <X className="h-6 w-6" />

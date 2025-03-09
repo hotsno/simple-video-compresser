@@ -17,9 +17,14 @@ interface VideoCarouselProps {
     filename: string;
   }[];
   onSelect: (path: string) => void;
+  onClearRecentFolders: () => void;
 }
 
-export default function VideoCarousel({ files, onSelect }: VideoCarouselProps) {
+export default function VideoCarousel({
+  files,
+  onSelect,
+  onClearRecentFolders,
+}: VideoCarouselProps) {
   return (
     <div className="relative select-none">
       <Carousel className="w-full">
@@ -27,17 +32,14 @@ export default function VideoCarousel({ files, onSelect }: VideoCarouselProps) {
           {files.map((video) => (
             <CarouselItem
               key={video.id}
-              className="md:basis-1/3 lg:basis-1/3 xl:basis-1/4"
+              className="sm:basis-1/2 md:basis-1/2 lg:basis-1/3"
             >
               <VideoCard video={video} onSelect={onSelect} />
             </CarouselItem>
           ))}
-          <CarouselItem className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+          <CarouselItem className="sm:basis-1/2 md:basis-1/2 lg:basis-1/3">
             <ClearRecentFoldersCard
-              onClick={() => {
-                window.api.clearRecentFiles();
-                window.location.reload();
-              }}
+              onClearRecentFolders={onClearRecentFolders}
             />
           </CarouselItem>
         </CarouselContent>

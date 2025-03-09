@@ -20,7 +20,7 @@ declare global {
         id: number;
         filename: string;
       }[];
-      clearRecentFiles(): void;
+      clearRecentFolders(): void;
     };
   }
 }

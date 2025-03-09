@@ -7,7 +7,7 @@ const api = {
     ipcRenderer.invoke("compress-video", options),
   getPathForFile: (file): string => webUtils.getPathForFile(file),
   getRecentFiles: () => ipcRenderer.invoke("get-recent-files"),
-  clearRecentFiles: () => ipcRenderer.invoke("clear-recent-files"),
+  clearRecentFolders: () => ipcRenderer.invoke("clear-recent-folders"),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

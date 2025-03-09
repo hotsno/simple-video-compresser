@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import VideoCarousel from "./components/video-carousel";
+import { Transition } from "@headlessui/react";
 
 const App = (): JSX.Element => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -98,36 +99,48 @@ const App = (): JSX.Element => {
     }[]
   >([]);
 
+  const fetchRecentFiles = async () => {
+    const files = await window.api.getRecentFiles();
+    setRecentFiles(files);
+  };
+
   // Add this useEffect after the useState declarations
   useEffect(() => {
-    const fetchRecentFiles = async () => {
-      const files = await window.api.getRecentFiles();
-      setRecentFiles(files);
-    };
-
     fetchRecentFiles();
   }, []);
 
   // Modify the JSX section
   return (
     <div className="cursor-default">
-      {recentFiles.length > 0 && (
-        <>
+      <Transition
+        show={recentFiles.length > 0}
+        enter="transition-all duration-300 ease-out"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="transition-all duration-300 ease-in"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div>
           <div className="max-w-[80%] container mx-auto pt-10 md:max-w-2xl">
             <h1 className="text-2xl font-bold tracking-tight">
               Files From Recent Folders
             </h1>
           </div>
-          <div className="max-w-[80%] md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pt-5">
+          <div className="max-w-[80%] md:max-w-2xl mx-auto pt-5">
             <VideoCarousel
               files={recentFiles}
               onSelect={(path) => {
                 setSelectedFile(path);
               }}
+              onClearRecentFolders={() => {
+                window.api.clearRecentFolders();
+                setRecentFiles([]);
+              }}
             />
           </div>
-        </>
-      )}
+        </div>
+      </Transition>
       <div className="max-w-[80%] container mx-auto py-5 md:max-w-2xl">
         <Card>
           <CardHeader>
@@ -144,10 +157,21 @@ const App = (): JSX.Element => {
             flex items-center justify-center cursor-pointer hover:border-gray-500 transition-colors duration-300 ease-in-out"
             >
               <input {...getInputProps()} />
-              <p className="text-center">
-                {selectedFile
-                  ? `Selected: ${selectedFile}`
-                  : "Drag and drop a video file here, or click to select"}
+              <p className="text-center break-words overflow-hidden px-4 text-gray-400">
+                {selectedFile ? (
+                  <>
+                    <span className="font-bold">Selected file: </span>
+                    <br></br>
+                    <span className="text-blue-400 underline">
+                      {selectedFile}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold">Drag and drop</span>, or{" "}
+                    <span className="font-bold">click to select</span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -180,7 +204,7 @@ const App = (): JSX.Element => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="format">Output Format</Label>
+                <Label htmlFor="format">Codec + Format</Label>
                 <Select value={format} onValueChange={setFormat}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select format" />
@@ -213,7 +237,10 @@ const App = (): JSX.Element => {
 
               <Button
                 className="w-full cursor-pointer"
-                onClick={handleCompression}
+                onClick={() => {
+                  handleCompression();
+                  fetchRecentFiles();
+                }}
                 disabled={isCompressing}
               >
                 {isCompressing ? "Compressing..." : "Compress Video"}
