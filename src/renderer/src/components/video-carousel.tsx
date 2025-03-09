@@ -15,6 +15,7 @@ interface VideoCarouselProps {
     mtime: number;
     id: number;
     filename: string;
+    thumbnail: string;
   }[];
   onSelect: (path: string) => void;
   onClearRecentFolders: () => void;

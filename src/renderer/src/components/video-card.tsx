@@ -9,6 +9,7 @@ type VideoCardProps = {
     mtime: number;
     id: number;
     filename: string;
+    thumbnail: string;
   };
   onSelect: (path: string) => void;
 };
@@ -21,7 +22,7 @@ export default function VideoCard({ video, onSelect }: VideoCardProps) {
     >
       <div className="relative aspect-video">
         <img
-          src={placeholderUrl}
+          src={`file://${video.thumbnail}`}
           alt={video.filename}
           className="absolute inset-0 w-full h-full object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

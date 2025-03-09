@@ -96,6 +96,7 @@ const App = (): JSX.Element => {
       mtime: number;
       id: number;
       filename: string;
+      thumbnail: string;
     }[]
   >([]);
 

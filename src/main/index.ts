@@ -8,6 +8,9 @@ import ffprobePath from "ffprobe-static";
 import fs from "fs";
 import Store from "electron-store";
 
+ffmpeg.setFfmpegPath(getFfmpegPath());
+ffmpeg.setFfprobePath(getFfprobePath());
+
 function createWindow(): void {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -28,6 +31,7 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
+      webSecurity: is.dev ? false : true,
     },
   });
 
@@ -114,9 +118,6 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
   const { inputPath, outputPath, resolution, format, fps } = options;
 
   return new Promise((resolve, reject) => {
-    ffmpeg.setFfmpegPath(getFfmpegPath());
-    ffmpeg.setFfprobePath(getFfprobePath());
-
     const command = ffmpeg(inputPath);
 
     if (resolution) {
@@ -147,10 +148,19 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
   });
 }
 
-function getRecentFiles(_event) {
+interface RecentFile {
+  path: string;
+  folder: string;
+  mtime: number;
+  filename: string;
+  thumbnail?: string;
+  id?: number;
+}
+
+async function getRecentFiles(_event) {
   const store = new Store<StoreSchema>();
   const recentDirs = store.get("recentDirs", []);
-  const allRecentFiles: { folder: string; path: string; mtime: number }[] = [];
+  const allRecentFiles: RecentFile[] = [];
 
   for (const dir of recentDirs) {
     try {
@@ -176,14 +186,51 @@ function getRecentFiles(_event) {
     }
   }
 
-  return allRecentFiles
-    .sort((a, b) => b.mtime - a.mtime)
-    .map((file, index) => ({ ...file, id: index + 1 }));
+  const sortedFiles = allRecentFiles.sort((a, b) => b.mtime - a.mtime);
+  const filesWithThumbnails = await Promise.all(
+    sortedFiles.map(async (file, index) => ({
+      ...file,
+      thumbnail: await getThumbnail(file.path),
+      id: index + 1,
+    })),
+  );
+
+  return filesWithThumbnails;
 }
 
 function clearRecentFolders(_event) {
   const store = new Store<StoreSchema>();
   store.set("recentDirs", []);
+}
+
+async function getThumbnail(videoPath) {
+  const userDataPath = app.getPath("userData");
+  const thumbnailPath =
+    path.join(userDataPath, path.basename(videoPath)).replace(/\.[^/.]+$/, "") +
+    ".jpg";
+  if (fs.existsSync(thumbnailPath)) {
+    return thumbnailPath;
+  }
+
+  const folder = path.dirname(thumbnailPath);
+
+  return new Promise((resolve, reject) => {
+    ffmpeg(videoPath)
+      .screenshots({
+        timestamps: ["00:00"],
+        filename: path.basename(thumbnailPath),
+        folder: folder,
+        size: "1280x?",
+      })
+      .on("end", () => {
+        resolve(thumbnailPath);
+      })
+      .on("error", (err) => {
+        console.error("Error generating thumbnail:", err);
+        reject(err);
+      });
+    return thumbnailPath;
+  });
 }
 
 // In this file you can include the rest of your app's specific main process

@@ -19,6 +19,7 @@ declare global {
         mtime: number;
         id: number;
         filename: string;
+        thumbnail: string;
       }[];
       clearRecentFolders(): void;
     };
