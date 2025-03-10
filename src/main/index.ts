@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
-import ffprobePath from "ffprobe-static";
+import ffprobe from "ffprobe-static";
 import fs from "fs";
 import Store from "electron-store";
 
@@ -67,9 +67,14 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window);
   });
 
-  // Compress video IPC
-  ipcMain.handle("compress-video", (event, options) =>
-    compressVideo(event, options),
+  // Compress video with CRF IPC
+  ipcMain.handle("compress-video-with-crf", (event, options) =>
+    compressVideoWithCrf(event, options),
+  );
+
+  // Compress video with bitrate IPC
+  ipcMain.handle("compress-video-with-bitrate", (event, options) =>
+    compressVideoWithBitrate(event, options),
   );
 
   // Get recent files IPC
@@ -110,22 +115,25 @@ function getFfprobePath() {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "ffprobe");
   }
-  return ffprobePath;
+  return ffprobe.path;
 }
 
 interface StoreSchema {
   recentDirs: string[];
 }
 
-async function compressVideo(_event, options): Promise<{ success: boolean }> {
-  const { inputPath, outputPath, resolution, format, fps } = options;
+async function compressVideoWithCrf(
+  _event,
+  options,
+): Promise<{ success: boolean }> {
+  const { inputPath, outputPath, resolution, format, fps, crf } = options;
 
   return new Promise((resolve, reject) => {
     const command = ffmpeg(inputPath);
 
     if (resolution) {
-      const [width, height] = resolution.split("x");
-      command.size(`${width}x${height}`);
+      const [width, _height] = resolution.split("x");
+      command.size(`${width}x?`);
     }
 
     if (fps && fps != "Keep same") {
@@ -134,6 +142,10 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
 
     if (format) {
       command.videoCodec(format);
+    }
+
+    if (crf) {
+      command.addOption("-crf", crf);
     }
 
     const store = new Store<StoreSchema>();
@@ -147,6 +159,52 @@ async function compressVideo(_event, options): Promise<{ success: boolean }> {
     command
       .on("end", () => resolve({ success: true }))
       .on("error", (err) => reject(err))
+      .save(outputPath);
+  });
+}
+async function compressVideoWithBitrate(
+  _event,
+  options,
+): Promise<{ success: boolean }> {
+  const { inputPath, outputPath, resolution, format, fps, targetSize } =
+    options;
+
+  const duration: number = await new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(inputPath, (err, metadata) => {
+      if (err) reject(err);
+      resolve(metadata.format.duration);
+    });
+  });
+  const [width, _height] = resolution.split("x");
+
+  const targetBitrate = Math.floor((targetSize * 8192) / duration);
+
+  return new Promise((resolve, reject) => {
+    const firstPass = ffmpeg(inputPath)
+      .size(`${width}x?`)
+      .addOption("-y")
+      .addOption("-c:v", format)
+      .addOption("-b:v", `${targetBitrate}k`)
+      .addOption("-pass", "1");
+
+    if (fps && fps != "Keep same") {
+      firstPass.fps(parseInt(fps));
+    }
+
+    const store = new Store<StoreSchema>();
+    let recentDirs = store.get("recentDirs", []);
+    if (!recentDirs.includes(path.dirname(inputPath))) {
+      recentDirs.push(path.dirname(inputPath));
+    }
+    store.set("recentDirs", recentDirs);
+
+    firstPass
+      .on("end", () => {
+        resolve({ success: true });
+      })
+      .on("error", (err) => {
+        reject(err);
+      })
       .save(outputPath);
   });
 }

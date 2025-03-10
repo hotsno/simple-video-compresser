@@ -10,21 +10,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import VideoCarousel from "./components/video-carousel";
 import { Transition } from "@headlessui/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const App = (): JSX.Element => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [resolution, setResolution] = useState("1920x1080");
   const [targetSize, setTargetSize] = useState("500");
+  const [crf, setCrf] = useState("23");
   const [format, setFormat] = useState("libx264");
   const [fps, setFps] = useState("Keep same");
   const [isCompressing, setIsCompressing] = useState(false);
@@ -54,7 +50,7 @@ const App = (): JSX.Element => {
     },
   });
 
-  const handleCompression = async (): Promise<void> => {
+  const handleCompression = async (auto): Promise<void> => {
     if (!selectedFile) {
       toast("Error", {
         description: "Please select a video file first",
@@ -64,14 +60,26 @@ const App = (): JSX.Element => {
 
     setIsCompressing(true);
     try {
-      const result = await window.api.compressVideo({
-        inputPath: selectedFile,
-        outputPath: selectedFile.replace(/\.[^/.]+$/, `_compressed.mp4`),
-        resolution,
-        targetSize: parseInt(targetSize),
-        format,
-        fps: parseInt(fps),
-      });
+      let result;
+      if (auto) {
+        result = await window.api.compressVideoWithCrf({
+          inputPath: selectedFile,
+          outputPath: selectedFile.replace(/\.[^/.]+$/, `_compressed.mp4`),
+          resolution,
+          format,
+          fps: parseInt(fps),
+          crf,
+        });
+      } else {
+        result = await window.api.compressVideoWithBitrate({
+          inputPath: selectedFile,
+          outputPath: selectedFile.replace(/\.[^/.]+$/, `_compressed.mp4`),
+          resolution,
+          format,
+          fps: parseInt(fps),
+          targetSize: parseInt(targetSize),
+        });
+      }
 
       if (result.success) {
         toast("Success", {
@@ -153,14 +161,8 @@ const App = (): JSX.Element => {
       </Transition>
       <div className="max-w-[80%] container mx-auto py-5 md:max-w-2xl">
         <Card>
-          <CardHeader>
-            <CardTitle>Video Compressor</CardTitle>
-            <CardDescription>
-              Encode/compress your videos with custom settings
-            </CardDescription>
-          </CardHeader>
           <CardContent className="space-y-6">
-            <Label>File Select</Label>
+            <Label>File</Label>
             <div
               {...getRootProps()}
               onDrop={onDrop}
@@ -186,77 +188,179 @@ const App = (): JSX.Element => {
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="resolution">Resolution</Label>
-                <Select value={resolution} onValueChange={setResolution}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select resolution" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3840x2160">4K (3840x2160)</SelectItem>
-                    <SelectItem value="2560x1440">2K (2560x1440)</SelectItem>
-                    <SelectItem value="1920x1080">1080p (1920x1080)</SelectItem>
-                    <SelectItem value="1280x720">720p (1280x720)</SelectItem>
-                    <SelectItem value="854x480">480p (854x480)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <Tabs defaultValue="auto">
+              <TabsList className="mx-auto">
+                <TabsTrigger value="auto">Auto</TabsTrigger>
+                <TabsTrigger value="target">File Size Target</TabsTrigger>
+              </TabsList>
+              <TabsContent value="auto">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="resolution">Resolution</Label>
+                    <Select value={resolution} onValueChange={setResolution}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select resolution" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3840x2160">
+                          4K (3840x2160)
+                        </SelectItem>
+                        <SelectItem value="2560x1440">
+                          2K (2560x1440)
+                        </SelectItem>
+                        <SelectItem value="1920x1080">
+                          1080p (1920x1080)
+                        </SelectItem>
+                        <SelectItem value="1280x720">
+                          720p (1280x720)
+                        </SelectItem>
+                        <SelectItem value="854x480">480p (854x480)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="targetSize">Target Size (MB)</Label>
-                <Input
-                  id="targetSize"
-                  type="number"
-                  value={targetSize}
-                  onChange={(e) => setTargetSize(e.target.value)}
-                  min="1"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="targetSize">CRF</Label>
+                    <Input
+                      id="targetSize"
+                      type="number"
+                      value={crf}
+                      onChange={(e) => setCrf(e.target.value)}
+                      min="1"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="format">Codec + Format</Label>
-                <Select value={format} onValueChange={setFormat}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="libx264">
-                      avc/mp4 (recommended)
-                    </SelectItem>
-                    <SelectItem value="libx265">hevc/mp4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="format">Codec + Format</Label>
+                    <Select value={format} onValueChange={setFormat}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="libx264">
+                          h264/mp4 (recommended)
+                        </SelectItem>
+                        <SelectItem value="libx265" disabled>
+                          h265/mp4
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fps">FPS</Label>
-                <Select value={fps} onValueChange={(e) => setFps(e)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Keep same" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Keep same">Keep same</SelectItem>
-                    <SelectItem value="20">20 FPS</SelectItem>
-                    <SelectItem value="24">24 FPS</SelectItem>
-                    <SelectItem value="30">30 FPS</SelectItem>
-                    <SelectItem value="60">60 FPS</SelectItem>
-                    <SelectItem value="120">120 FPS</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fps">FPS</Label>
+                    <Select value={fps} onValueChange={(e) => setFps(e)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Keep same" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Keep same">Keep same</SelectItem>
+                        <SelectItem value="20">20 FPS</SelectItem>
+                        <SelectItem value="24">24 FPS</SelectItem>
+                        <SelectItem value="30">30 FPS</SelectItem>
+                        <SelectItem value="60">60 FPS</SelectItem>
+                        <SelectItem value="120">120 FPS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <Button
-                className="w-full cursor-pointer"
-                onClick={() => {
-                  handleCompression();
-                  fetchRecentFiles();
-                }}
-                disabled={isCompressing}
-              >
-                {isCompressing ? "Compressing..." : "Compress Video"}
-              </Button>
-            </div>
+                  <Button
+                    className="w-full cursor-pointer"
+                    onClick={() => {
+                      handleCompression(true);
+                      fetchRecentFiles();
+                    }}
+                    disabled={isCompressing}
+                  >
+                    {isCompressing ? "Compressing..." : "Compress Video"}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="target">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="resolution">Resolution</Label>
+                    <Select value={resolution} onValueChange={setResolution}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select resolution" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3840x2160">
+                          4K (3840x2160)
+                        </SelectItem>
+                        <SelectItem value="2560x1440">
+                          2K (2560x1440)
+                        </SelectItem>
+                        <SelectItem value="1920x1080">
+                          1080p (1920x1080)
+                        </SelectItem>
+                        <SelectItem value="1280x720">
+                          720p (1280x720)
+                        </SelectItem>
+                        <SelectItem value="854x480">480p (854x480)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="targetSize">Target Size (MB)</Label>
+                    <Input
+                      id="targetSize"
+                      type="number"
+                      value={targetSize}
+                      onChange={(e) => setTargetSize(e.target.value)}
+                      min="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="format">Codec + Format</Label>
+                    <Select value={format} onValueChange={setFormat}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="libx264">
+                          h264/mp4 (recommended)
+                        </SelectItem>
+                        <SelectItem value="libx265" disabled>
+                          h265/mp4
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fps">FPS</Label>
+                    <Select value={fps} onValueChange={(e) => setFps(e)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Keep same" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Keep same">Keep same</SelectItem>
+                        <SelectItem value="20">20 FPS</SelectItem>
+                        <SelectItem value="24">24 FPS</SelectItem>
+                        <SelectItem value="30">30 FPS</SelectItem>
+                        <SelectItem value="60">60 FPS</SelectItem>
+                        <SelectItem value="120">120 FPS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    className="w-full cursor-pointer"
+                    onClick={() => {
+                      handleCompression(false);
+                      fetchRecentFiles();
+                    }}
+                    disabled={isCompressing}
+                  >
+                    {isCompressing ? "Compressing..." : "Compress Video"}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

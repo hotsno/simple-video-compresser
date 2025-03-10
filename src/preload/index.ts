@@ -3,8 +3,10 @@ import { electronAPI } from "@electron-toolkit/preload";
 
 // Custom APIs for renderer
 const api = {
-  compressVideo: (options): Promise<{ success: boolean }> =>
-    ipcRenderer.invoke("compress-video", options),
+  compressVideoWithCrf: (options): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("compress-video-with-crf", options),
+  compressVideoWithBitrate: (options): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("compress-video-with-bitrate", options),
   getPathForFile: (file): string => webUtils.getPathForFile(file),
   getRecentFiles: () => ipcRenderer.invoke("get-recent-files"),
   clearRecentFolders: () => ipcRenderer.invoke("clear-recent-folders"),

@@ -4,13 +4,21 @@ declare global {
   interface Window {
     electron: ElectronAPI;
     api: {
-      compressVideo(options: {
+      compressVideoWithCrf(options: {
         inputPath: string;
         outputPath: string;
         resolution: string;
-        targetSize: number;
         format: string;
         fps: number;
+        crf: string;
+      }): Promise<{ success: boolean }>;
+      compressVideoWithBitrate(options: {
+        inputPath: string;
+        outputPath: string;
+        resolution: string;
+        format: string;
+        fps: number;
+        targetSize: number;
       }): Promise<{ success: boolean }>;
       getPathForFile(file: File): string;
       getRecentFiles(): {
