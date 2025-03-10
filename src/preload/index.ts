@@ -8,6 +8,8 @@ const api = {
   getPathForFile: (file): string => webUtils.getPathForFile(file),
   getRecentFiles: () => ipcRenderer.invoke("get-recent-files"),
   clearRecentFolders: () => ipcRenderer.invoke("clear-recent-folders"),
+  openInFileManager: (path: string) =>
+    ipcRenderer.invoke("open-in-file-manager", path),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

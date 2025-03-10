@@ -78,6 +78,9 @@ app.whenReady().then(() => {
   // Get recent files IPC
   ipcMain.handle("clear-recent-folders", clearRecentFolders);
 
+  // Open file in file explorer IPC
+  ipcMain.handle("open-in-file-manager", openInFileManager);
+
   createWindow();
 
   app.on("activate", function () {
@@ -231,6 +234,10 @@ async function getThumbnail(videoPath) {
       });
     return thumbnailPath;
   });
+}
+
+function openInFileManager(_event, path: string) {
+  shell.showItemInFolder(path);
 }
 
 // In this file you can include the rest of your app's specific main process

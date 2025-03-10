@@ -37,6 +37,7 @@
     "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9",
     "embla-carousel-react": "^8.5.2",
+    "embla-carousel-wheel-gestures": "^8.0.1",
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",
     "fluent-ffmpeg": "^2.1.3",

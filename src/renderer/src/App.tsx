@@ -76,6 +76,15 @@ const App = (): JSX.Element => {
       if (result.success) {
         toast("Success", {
           description: "Video compression completed",
+          action: (
+            <Button
+              // NOTE: Really, we should be opening the compressed file
+              onClick={() => window.api.openInFileManager(selectedFile)}
+              className="ml-auto"
+            >
+              Open
+            </Button>
+          ),
         });
       }
     } catch (error) {
@@ -151,6 +160,7 @@ const App = (): JSX.Element => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <Label>File Select</Label>
             <div
               {...getRootProps()}
               onDrop={onDrop}

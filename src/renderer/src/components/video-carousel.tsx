@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/carousel";
 import VideoCard from "./video-card";
 import ClearRecentFoldersCard from "./clear-recent-folders-card";
+import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 
 interface VideoCarouselProps {
   files: {
@@ -28,7 +29,7 @@ export default function VideoCarousel({
 }: VideoCarouselProps) {
   return (
     <div className="relative select-none">
-      <Carousel className="w-full">
+      <Carousel className="w-full" plugins={[WheelGesturesPlugin()]}>
         <CarouselContent>
           {files.map((video) => (
             <CarouselItem

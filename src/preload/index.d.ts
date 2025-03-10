@@ -22,6 +22,7 @@ declare global {
         thumbnail: string;
       }[];
       clearRecentFolders(): void;
+      openInFileManager(path: string): void;
     };
   }
 }
