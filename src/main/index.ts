@@ -130,6 +130,8 @@ async function compressVideoWithCrf(
 
   return new Promise((resolve, reject) => {
     const command = ffmpeg(inputPath);
+    
+    command.addInputOptions(["-hwaccel auto"]);
 
     if (resolution) {
       const [width, _height] = resolution.split("x");
@@ -181,6 +183,7 @@ async function compressVideoWithBitrate(
 
   return new Promise((resolve, reject) => {
     const firstPass = ffmpeg(inputPath)
+      .addInputOptions(["-hwaccel auto"])
       .size(`${width}x?`)
       .addOption("-y")
       .addOption("-c:v", format)
